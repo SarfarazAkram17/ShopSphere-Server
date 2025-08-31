@@ -7,6 +7,9 @@ import connectDB from "./config/db.js";
 const app = express();
 const port = 5001;
 
+import { authRoutes } from "./routes/auth.route.js";
+import { usersRoutes } from "./routes/users.route.js";
+
 app.use(
   cors({
     origin: ["http://localhost:5173"],
@@ -17,13 +20,12 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", (req, res) => {
-  res.send("ShopSphere is running");
-});
-
 async function startServer() {
   try {
     const { users } = await connectDB();
+
+    app.use("/auth", authRoutes(users));
+    app.use("/users", usersRoutes(users));
 
     app.listen(port, () => {
       console.log(`server is running on port ${port}`);
@@ -34,4 +36,4 @@ async function startServer() {
   }
 }
 
-startServer()
+startServer();

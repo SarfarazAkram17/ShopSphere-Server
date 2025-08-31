@@ -1,7 +1,7 @@
 import { MongoClient, ServerApiVersion } from 'mongodb'
 import 'dotenv/config'
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@shopsphere.aveemsz.mongodb.net/?retryWrites=true&w=majority&appName=ShopSphere`;
+const uri = process.env.MONGODB_URI;
 
 const client = new MongoClient(uri, {
   serverApi: {
