@@ -1,3 +1,41 @@
+export const getAllUsers = async (req, res, users) => {
+  try {
+    let {
+      page = 1,
+      limit = 10,
+      search = "",
+      searchType = "name",
+      role = "",
+    } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const query = {};
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      if (searchType === "email") {
+        query.email = regex;
+      } else {
+        query.name = regex;
+      }
+    }
+
+    if (role) {
+      query.role = role;
+    }
+
+    const skip = (page - 1) * limit;
+    const total = await users.countDocuments(query);
+    const allUsers = await users.find(query).skip(skip).limit(limit).toArray();
+
+    res.send({ allUsers, total });
+  } catch (err) {
+    res.status(500).send({ message: "Server error", error: err.message });
+  }
+};
+
 export const getUserRole = async (req, res, users) => {
   try {
     const email = req.params.email;
@@ -37,4 +75,28 @@ export const createUser = async (req, res, users) => {
 
   const result = await users.insertOne(user);
   res.send(result);
+};
+
+export const updateProfile = async (req, res, users) => {
+  try {
+    const { name, photo } = req.body;
+    const { email } = req.query;
+
+    if (!email) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Email is required." });
+    }
+
+    const query = { email };
+    const updateDoc = { $set: { name, photo } };
+
+    const result = await users.updateOne(query, updateDoc);
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
 };
