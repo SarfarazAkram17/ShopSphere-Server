@@ -5,7 +5,7 @@ import {
   getUserRole,
   updateProfile,
 } from "../controllers/users.controller.js";
-import { verifyJwt } from "../middleware/verifyJwt.js";
+import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
 const router = express.Router();
 
