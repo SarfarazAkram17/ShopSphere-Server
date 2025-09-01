@@ -9,23 +9,24 @@ const port = 5001;
 
 import { authRoutes } from "./routes/auth.route.js";
 import { usersRoutes } from "./routes/users.route.js";
+import { sellersRoutes } from "./routes/sellers.route.js";
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["https://shopsphere-sarfaraz.netlify.app", "http://localhost:5173"],
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
 
 async function startServer() {
   try {
-    const { users } = await connectDB();
+    const { users, sellers, riders } = await connectDB();
 
     app.use("/auth", authRoutes(users));
     app.use("/users", usersRoutes(users));
+    app.use("/sellers", sellersRoutes(users, sellers));
 
     app.listen(port, () => {
       console.log(`server is running on port ${port}`);
