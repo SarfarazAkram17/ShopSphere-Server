@@ -1,4 +1,4 @@
-export const applyForSeller = async (req, res, sellers, riders) => {
+export const applyForRider = async (req, res, sellers, riders) => {
   try {
     const {
       name,
@@ -6,50 +6,41 @@ export const applyForSeller = async (req, res, sellers, riders) => {
       age,
       phone,
       experience,
-      storeAddress,
       region,
       district,
       thana,
-      storeName,
-      storeLogo,
-      coverImage,
-      categories,
       stripeAccountId,
       status,
       appliedAt,
     } = req.body;
 
     // Check if seller already exists
-    const existingRider = await riders.findOne({ email });
     const existingSeller = await sellers.findOne({ email });
+    const existingRider = await riders.findOne({ email });
 
-    if (existingRider) {
+    if (existingSeller) {
       return res.status(409).json({
-        message: "You have already applied for rider.",
+        message:
+          "You have already applied for seller.",
       });
     }
 
-    if (existingSeller) {
+    if (existingRider) {
       return res.status(409).json({
         message: "You have already applied. Please wait for approval.",
       });
     }
 
-    // Insert new seller
-    const result = await sellers.insertOne({
+    // Insert new rider
+    const result = await riders.insertOne({
       name,
       email,
       age,
       phone,
       experience,
-      storeAddress,
       region,
       district,
       thana,
-      storeName,
-      storeLogo,
-      coverImage,
-      categories,
       stripeAccountId,
       status,
       appliedAt,
