@@ -1,3 +1,28 @@
+import { ObjectId } from "mongodb";
+
+export const getPendingSellers = async (req, res, sellers) => {
+  try {
+    let { page = 1, limit = 10 } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const skip = (page - 1) * limit;
+    const total = await sellers.countDocuments({
+      status: "pending",
+    });
+
+    const pendingSellers = await sellers
+      .find({ status: "pending" })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    res.send({ pendingSellers, total });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to load pending sellers" });
+  }
+};
+
 export const applyForSeller = async (req, res, sellers, riders) => {
   try {
     const {
@@ -66,5 +91,52 @@ export const applyForSeller = async (req, res, sellers, riders) => {
     return res
       .status(500)
       .json({ message: "Server error", error: err.message });
+  }
+};
+
+export const updateSellerStatus = async (req, res, users, sellers) => {
+  const { id } = req.params;
+  const { status = "active", email } = req.body;
+  const query = { _id: new ObjectId(id) };
+
+  let updatedDoc = {};
+  if (status === "active") {
+    updatedDoc = {
+      $set: {
+        status,
+        work_status: "available",
+        activeAt: new Date().toISOString(),
+      },
+    };
+  }
+  if (status === "deactive") {
+    updatedDoc = {
+      $set: {
+        status,
+        work_status: "not_available",
+        deactiveAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  try {
+    const result = await sellers.updateOne(query, updatedDoc);
+    const userQuery = { email };
+    const updatedUserDoc = { $set: { role: "seller" } };
+    await users.updateOne(userQuery, updatedUserDoc);
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update seller status" });
+  }
+};
+
+export const rejectSeller = async (req, res, sellers) => {
+  try {
+    const query = { _id: new ObjectId(req.params.id) };
+    const result = await sellers.deleteOne(query);
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update rider status" });
   }
 };
