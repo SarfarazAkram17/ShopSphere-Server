@@ -11,6 +11,7 @@ import { authRoutes } from "./routes/auth.route.js";
 import { usersRoutes } from "./routes/users.route.js";
 import { sellersRoutes } from "./routes/sellers.route.js";
 import { ridersRoutes } from "./routes/riders.route.js";
+import { productsRoutes } from "./routes/products.route.js";
 
 app.use(
   cors({
@@ -26,12 +27,13 @@ app.use(cookieParser());
 
 async function startServer() {
   try {
-    const { users, sellers, riders } = await connectDB();
+    const { users, sellers, riders, products } = await connectDB();
 
     app.use("/auth", authRoutes(users));
     app.use("/users", usersRoutes(users));
     app.use("/sellers", sellersRoutes(users, sellers, riders));
     app.use("/riders", ridersRoutes(users, sellers, riders));
+    app.use("/products", productsRoutes(sellers, products));
 
     app.listen(port, () => {
       console.log(`server is running on port ${port}`);
