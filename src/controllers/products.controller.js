@@ -1,4 +1,8 @@
-export const addProduct = async (req, res, sellers, products) => {
+import connectDB from "../config/db.js";
+
+const { sellers, products } = await connectDB();
+
+export const addProduct = async (req, res) => {
   try {
     const { sellerEmail } = req.body;
     const seller = await sellers.findOne({ email: sellerEmail });

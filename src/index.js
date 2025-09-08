@@ -2,16 +2,17 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import cookieParser from "cookie-parser";
-import connectDB from "./config/db.js";
+import http from "http";
 
 const app = express();
+const server = http.createServer(app)
 const port = 5001;
 
-import { authRoutes } from "./routes/auth.route.js";
-import { usersRoutes } from "./routes/users.route.js";
-import { sellersRoutes } from "./routes/sellers.route.js";
-import { ridersRoutes } from "./routes/riders.route.js";
-import { productsRoutes } from "./routes/products.route.js";
+import authRouter from "./routes/auth.route.js";
+import userRouter from "./routes/users.route.js";
+import sellersRouter from "./routes/sellers.route.js";
+import ridersRouter from "./routes/riders.route.js";
+import productsRouter from "./routes/products.route.js";
 
 app.use(
   cors({
@@ -27,15 +28,13 @@ app.use(cookieParser());
 
 async function startServer() {
   try {
-    const { users, sellers, riders, products } = await connectDB();
+    app.use("/auth", authRouter);
+    app.use("/users", userRouter);
+    app.use("/sellers", sellersRouter);
+    app.use("/riders", ridersRouter);
+    app.use("/products", productsRouter);
 
-    app.use("/auth", authRoutes(users));
-    app.use("/users", usersRoutes(users));
-    app.use("/sellers", sellersRoutes(users, sellers, riders));
-    app.use("/riders", ridersRoutes(users, sellers, riders));
-    app.use("/products", productsRoutes(sellers, products));
-
-    app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`server is running on port ${port}`);
     });
   } catch (error) {

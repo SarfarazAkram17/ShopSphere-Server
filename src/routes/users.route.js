@@ -7,18 +7,15 @@ import {
 } from "../controllers/users.controller.js";
 import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
-const router = express.Router();
 
-export const usersRoutes = (users) => {
-  router.get("/", verifyJwt, verifyAdmin, (req, res) =>
-    getAllUsers(req, res, users)
-  );
+const userRouter = express.Router();
 
-  router.get("/:email/role", (req, res) => getUserRole(req, res, users));
+userRouter.get("/", verifyJwt, verifyAdmin, getAllUsers);
 
-  router.post("/", (req, res) => createUser(req, res, users));
+userRouter.get("/:email/role", getUserRole);
 
-  router.patch("/", verifyJwt, (req, res) => updateProfile(req, res, users));
+userRouter.post("/", createUser);
 
-  return router;
-};
+userRouter.patch("/", verifyJwt, updateProfile);
+
+export default userRouter;

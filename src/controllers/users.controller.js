@@ -1,4 +1,8 @@
-export const getAllUsers = async (req, res, users) => {
+import connectDB from "../config/db.js";
+
+const {users} = await connectDB()
+
+export const getAllUsers = async (req, res) => {
   try {
     let {
       page = 1,
@@ -36,7 +40,7 @@ export const getAllUsers = async (req, res, users) => {
   }
 };
 
-export const getUserRole = async (req, res, users) => {
+export const getUserRole = async (req, res) => {
   try {
     const email = req.params.email;
 
@@ -56,7 +60,7 @@ export const getUserRole = async (req, res, users) => {
   }
 };
 
-export const createUser = async (req, res, users) => {
+export const createUser = async (req, res) => {
   const user = req.body;
   const email = user.email;
 
@@ -77,7 +81,7 @@ export const createUser = async (req, res, users) => {
   res.send(result);
 };
 
-export const updateProfile = async (req, res, users) => {
+export const updateProfile = async (req, res) => {
   try {
     const { name, photo } = req.body;
     const { email } = req.query;

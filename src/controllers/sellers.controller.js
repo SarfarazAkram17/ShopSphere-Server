@@ -1,6 +1,9 @@
 import { ObjectId } from "mongodb";
+import connectDB from "../config/db.js";
 
-export const getPendingSellers = async (req, res, sellers) => {
+const { sellers, riders, users } = await connectDB();
+
+export const getPendingSellers = async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
 
@@ -23,7 +26,7 @@ export const getPendingSellers = async (req, res, sellers) => {
   }
 };
 
-export const applyForSeller = async (req, res, sellers, riders) => {
+export const applyForSeller = async (req, res) => {
   try {
     const {
       name,
@@ -94,7 +97,7 @@ export const applyForSeller = async (req, res, sellers, riders) => {
   }
 };
 
-export const updateSellerStatus = async (req, res, users, sellers) => {
+export const updateSellerStatus = async (req, res) => {
   const { id } = req.params;
   const { status = "active", email } = req.body;
   const query = { _id: new ObjectId(id) };
@@ -131,7 +134,7 @@ export const updateSellerStatus = async (req, res, users, sellers) => {
   }
 };
 
-export const rejectSeller = async (req, res, sellers) => {
+export const rejectSeller = async (req, res) => {
   try {
     const query = { _id: new ObjectId(req.params.id) };
     const result = await sellers.deleteOne(query);

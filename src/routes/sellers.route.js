@@ -8,24 +8,15 @@ import {
   rejectSeller,
 } from "../controllers/sellers.controller.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
-const router = express.Router();
 
-export const sellersRoutes = (users, sellers, riders) => {
-  router.get("/pending", verifyJwt, verifyAdmin, (req, res) =>
-    getPendingSellers(req, res, sellers)
-  );
+const sellersRouter = express.Router();
 
-  router.post("/", verifyJwt, verifyCustomer, (req, res) =>
-    applyForSeller(req, res, sellers, riders)
-  );
+sellersRouter.get("/pending", verifyJwt, verifyAdmin, getPendingSellers);
 
-  router.patch("/:id/status", verifyJwt, verifyAdmin, (req, res) =>
-    updateSellerStatus(req, res, users, sellers)
-  );
+sellersRouter.post("/", verifyJwt, verifyCustomer, applyForSeller);
 
-  router.delete("/:id", verifyJwt, verifyAdmin, (req, res) =>
-    rejectSeller(req, res, sellers)
-  );
+sellersRouter.patch("/:id/status", verifyJwt, verifyAdmin, updateSellerStatus);
 
-  return router;
-};
+sellersRouter.delete("/:id", verifyJwt, verifyAdmin, rejectSeller);
+
+export default sellersRouter;

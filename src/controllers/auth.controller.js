@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
+import connectDB from "../config/db.js";
 
-export const createToken = async (req, res, users) => {
+const { users } = await connectDB();
+
+export const createToken = async (req, res) => {
   const { email } = req.body;
   const user = await users.findOne({ email });
 

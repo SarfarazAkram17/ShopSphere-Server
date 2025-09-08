@@ -1,12 +1,10 @@
 import express from "express";
 import { createToken, logout } from "../controllers/auth.controller.js";
 
-const router = express.Router();
+const authRouter = express.Router();
 
-export const authRoutes = (users) => {
-  router.post("/jwt", (req, res) => createToken(req, res, users));
+authRouter.post("/jwt", createToken);
 
-  router.post("/logout", (req, res) => logout(req, res));
+authRouter.post("/logout", logout);
 
-  return router;
-};
+export default authRouter;

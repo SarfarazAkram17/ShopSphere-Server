@@ -8,24 +8,14 @@ import {
   updateRiderStatus,
   rejectRider,
 } from "../controllers/riders.controller.js";
-const router = express.Router();
+const ridersRouter = express.Router();
 
-export const ridersRoutes = (users, sellers, riders) => {
-  router.get("/pending", verifyJwt, verifyAdmin, (req, res) =>
-    getPendingRiders(req, res, riders)
-  );
+ridersRouter.get("/pending", verifyJwt, verifyAdmin, getPendingRiders);
 
-  router.post("/", verifyJwt, verifyCustomer, (req, res) =>
-    applyForRider(req, res, sellers, riders)
-  );
+ridersRouter.post("/", verifyJwt, verifyCustomer, applyForRider);
 
-  router.patch("/:id/status", verifyJwt, verifyAdmin, (req, res) =>
-    updateRiderStatus(req, res, users, riders)
-  );
+ridersRouter.patch("/:id/status", verifyJwt, verifyAdmin, updateRiderStatus);
 
-  router.delete("/:id", verifyJwt, verifyAdmin, (req, res) =>
-    rejectRider(req, res, riders)
-  );
+ridersRouter.delete("/:id", verifyJwt, verifyAdmin, rejectRider);
 
-  return router;
-};
+export default ridersRouter;
