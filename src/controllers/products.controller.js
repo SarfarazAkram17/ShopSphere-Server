@@ -29,6 +29,17 @@ export const getMyProduct = async (req, res) => {
   }
 };
 
+export const getAllProducts = async (req, res) => {
+  const allProducts = await products.find().toArray();
+  res.send(allProducts);
+};
+
+export const getSingleProduct = async (req, res) => {
+  const { id } = req.params;
+  const result = await products.findOne({ _id: new ObjectId(id) });
+  res.send(result);
+};
+
 export const addProduct = async (req, res) => {
   try {
     const { sellerEmail } = req.body;
@@ -52,15 +63,26 @@ export const updateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
     const {
-      title,
+      name,
+      price,
+      discount,
       description,
-      location,
+      stock,
+      category,
+      color,
+      size,
       imagesToAdd = [],
       imagesToRemove = [],
     } = req.body;
 
     const query = { _id: new ObjectId(productId) };
     const product = await products.findOne(query);
+
+    if (product.sellerEmail !== req.query.email) {
+      return res.status(403).send({
+        message: "You are not allowded to update other seller's product",
+      });
+    }
 
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
@@ -69,9 +91,14 @@ export const updateProduct = async (req, res) => {
     // Step 1: Apply $set and $pull
     const update1 = {
       $set: {
-        title,
+        name,
+        price,
+        discount,
         description,
-        location,
+        stock,
+        category,
+        color,
+        size,
         updatedAt: new Date().toISOString(),
       },
     };
@@ -96,7 +123,7 @@ export const updateProduct = async (req, res) => {
 
     res.send({ success: true, message: "Product updated successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error.message });
   }
 };
 
