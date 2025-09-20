@@ -1,11 +1,11 @@
 import connectDB from "../config/db.js";
 
-const {users} = await connectDB()
+const { users } = await connectDB();
 
 export const getAllUsers = async (req, res) => {
   try {
     let {
-      page = 1,
+      page = 0,
       limit = 10,
       search = "",
       searchType = "name",
@@ -30,7 +30,7 @@ export const getAllUsers = async (req, res) => {
       query.role = role;
     }
 
-    const skip = (page - 1) * limit;
+    const skip = page * limit;
     const total = await users.countDocuments(query);
     const allUsers = await users.find(query).skip(skip).limit(limit).toArray();
 

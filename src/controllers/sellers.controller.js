@@ -5,18 +5,41 @@ const { sellers, riders, users } = await connectDB();
 
 export const getPendingSellers = async (req, res) => {
   try {
-    let { page = 1, limit = 10 } = req.query;
+    let {
+      page = 0,
+      limit = 10,
+      region,
+      district,
+      searchType = "name",
+      search = "",
+    } = req.query;
 
     page = parseInt(page);
     limit = parseInt(limit);
 
-    const skip = (page - 1) * limit;
-    const total = await sellers.countDocuments({
-      status: "pending",
-    });
+    const skip = page * limit;
 
+    const query = { status: "pending" };
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      if (searchType === "email") {
+        query.email = regex;
+      } else {
+        query.name = regex;
+      }
+    }
+
+    if (region) {
+      query.region = region;
+    }
+    if (district) {
+      query.district = district;
+    }
+
+    const total = await sellers.countDocuments(query);
     const pendingSellers = await sellers
-      .find({ status: "pending" })
+      .find(query)
       .skip(skip)
       .limit(limit)
       .toArray();
