@@ -30,8 +30,44 @@ export const getMyProduct = async (req, res) => {
 };
 
 export const getAllProducts = async (req, res) => {
-  const allProducts = await products.find().toArray();
-  res.send(allProducts);
+  try {
+    let { page = 0, limit = 10, search, searchType, sort } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const skip = page * limit;
+
+    const query = {};
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      if (searchType === "seller email") {
+        query.sellerEmail = regex;
+      } else if (searchType === "product name") {
+        query.name = regex;
+      } else if (searchType === "storeId") {
+        query.storeId = regex;
+      } else {
+        query.storeName = regex;
+      }
+    }
+
+    const sorting = sort === "priceDesc" ? -1 : 1;
+
+    const total = await products.countDocuments(query);
+    const allProducts = await products
+      .find(query)
+      .skip(skip)
+      .sort({ price: sorting })
+      .limit(limit)
+      .toArray();
+    res.send({ allProducts, total });
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: "Failed to fetch products", error: err.message });
+  }
 };
 
 export const getSingleProduct = async (req, res) => {
@@ -45,7 +81,11 @@ export const addProduct = async (req, res) => {
     const { sellerEmail } = req.body;
     const seller = await sellers.findOne({ email: sellerEmail });
 
-    const newProduct = { storeId: seller._id.toString(), ...req.body };
+    const newProduct = {
+      storeId: seller._id.toString(),
+      storeName: seller.storeName,
+      ...req.body,
+    };
 
     const result = await products.insertOne(newProduct);
     const productId = result.insertedId;
