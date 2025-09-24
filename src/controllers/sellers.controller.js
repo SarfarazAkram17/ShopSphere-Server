@@ -84,12 +84,12 @@ export const getSellers = async (req, res) => {
     }
 
     const total = await sellers.countDocuments(query);
-    const notPendingsellers = await sellers
+    const notPendingSellers = await sellers
       .find(query)
       .skip(skip)
       .limit(limit)
       .toArray();
-    res.send({ sellers: notPendingsellers, total });
+    res.send({ sellers: notPendingSellers, total });
   } catch (error) {
     res.status(500).send({ message: "Failed to load sellers" });
   }

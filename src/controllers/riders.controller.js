@@ -49,6 +49,52 @@ export const getPendingRiders = async (req, res) => {
   }
 };
 
+export const getRiders = async (req, res) => {
+  try {
+    let {
+      page = 0,
+      limit = 10,
+      region,
+      district,
+      searchType = "name",
+      search = "",
+    } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const skip = page * limit;
+
+    const query = { status: { $ne: "pending" } };
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      if (searchType === "email") {
+        query.email = regex;
+      } else {
+        query.name = regex;
+      }
+    }
+
+    if (region) {
+      query.region = region;
+    }
+    if (district) {
+      query.district = district;
+    }
+
+    const total = await riders.countDocuments(query);
+    const notPendingRiders = await riders
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    res.send({ riders: notPendingRiders, total });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to load riders" });
+  }
+};
+
 export const applyForRider = async (req, res) => {
   try {
     const {
@@ -123,6 +169,9 @@ export const updateRiderStatus = async (req, res) => {
         work_status: "available",
         activeAt: new Date().toISOString(),
       },
+      $unset: {
+        deactiveAt: "",
+      },
     };
   }
   if (status === "deactive") {
@@ -132,14 +181,19 @@ export const updateRiderStatus = async (req, res) => {
         work_status: "not_available",
         deactiveAt: new Date().toISOString(),
       },
+      $unset: {
+        activeAt: "",
+      },
     };
   }
 
   try {
     const result = await riders.updateOne(query, updatedDoc);
-    const userQuery = { email };
-    const updatedUserDoc = { $set: { role: "rider" } };
-    await users.updateOne(userQuery, updatedUserDoc);
+    if (status === "active") {
+      const userQuery = { email };
+      const updatedUserDoc = { $set: { role: "rider" } };
+      await users.updateOne(userQuery, updatedUserDoc);
+    }
 
     res.send(result);
   } catch (err) {
