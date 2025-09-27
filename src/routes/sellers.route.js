@@ -7,14 +7,18 @@ import {
   updateSellerStatus,
   rejectSeller,
   getSellers,
+  getStore
 } from "../controllers/sellers.controller.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
+import { verifySeller } from "../middleware/verifySeller.middleware.js";
 
 const sellersRouter = express.Router();
 
 sellersRouter.get("/pending", verifyJwt, verifyAdmin, getPendingSellers);
 
 sellersRouter.get("/", verifyJwt, verifyAdmin, getSellers);
+
+sellersRouter.get("/myStore", verifyJwt, verifySeller, getStore);
 
 sellersRouter.post("/", verifyJwt, verifyCustomer, applyForSeller);
 

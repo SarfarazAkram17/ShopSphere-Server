@@ -95,6 +95,16 @@ export const getSellers = async (req, res) => {
   }
 };
 
+export const getStore = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const store = await sellers.findOne({ email });
+    res.send(store);
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+};
+
 export const applyForSeller = async (req, res) => {
   try {
     const {
@@ -188,7 +198,7 @@ export const updateSellerStatus = async (req, res) => {
     updatedDoc = {
       $set: {
         status,
-        work_status: "not_available",
+        work_status: "not available",
         deactiveAt: new Date().toISOString(),
       },
       $unset: {

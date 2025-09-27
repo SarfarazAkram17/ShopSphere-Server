@@ -178,7 +178,7 @@ export const updateRiderStatus = async (req, res) => {
     updatedDoc = {
       $set: {
         status,
-        work_status: "not_available",
+        work_status: "not available",
         deactiveAt: new Date().toISOString(),
       },
       $unset: {
