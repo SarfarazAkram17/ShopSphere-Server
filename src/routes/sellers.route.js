@@ -7,7 +7,8 @@ import {
   updateSellerStatus,
   rejectSeller,
   getSellers,
-  getStore
+  getStore,
+  updateStore
 } from "../controllers/sellers.controller.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
 import { verifySeller } from "../middleware/verifySeller.middleware.js";
@@ -21,6 +22,8 @@ sellersRouter.get("/", verifyJwt, verifyAdmin, getSellers);
 sellersRouter.get("/myStore", verifyJwt, verifySeller, getStore);
 
 sellersRouter.post("/", verifyJwt, verifyCustomer, applyForSeller);
+
+sellersRouter.patch("/myStore/:storeId", verifyJwt, verifySeller, updateStore);
 
 sellersRouter.patch("/:id/status", verifyJwt, verifyAdmin, updateSellerStatus);
 

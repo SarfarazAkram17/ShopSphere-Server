@@ -176,6 +176,29 @@ export const applyForSeller = async (req, res) => {
   }
 };
 
+export const updateStore = async (req, res) => {
+  const { storeId } = req.params;
+
+  const query = { _id: new ObjectId(storeId) };
+  const store = await sellers.findOne(query);
+
+  if (store.email !== req.query.email) {
+    return res.status(403).send({
+      message:
+        "You are not allowded to update other seller's store or personal informations",
+    });
+  }
+
+  const updatedDoc = { $set: req.body };
+
+  try {
+    const result = await sellers.updateOne(query, updatedDoc);
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update seller informations" });
+  }
+};
+
 export const updateSellerStatus = async (req, res) => {
   const { id } = req.params;
   const { status = "active", email } = req.body;
