@@ -149,6 +149,85 @@ export const getProducts = async (req, res) => {
   }
 };
 
+export const getOfferedProducts = async (req, res) => {
+  try {
+    let {
+      page = 1,
+      limit = 12,
+      search,
+      category,
+      color,
+      size,
+      minPrice,
+      maxPrice,
+      discount,
+      minRating,
+    } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const filter = { discount: { $gt: 0 } };
+
+    // Search filter
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Category filter
+    if (category) {
+      category = category.split(",");
+      filter.category = { $in: category };
+    }
+
+    // Color filter
+    if (color) {
+      // if color is a single string from query
+      filter.color = { $in: Array.isArray(color) ? color : [color] };
+    }
+
+    // Size filter
+    if (size) {
+      filter.size = { $in: Array.isArray(size) ? size : [size] };
+    }
+
+    // Price filter
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    // Discount filter
+    if (discount) {
+      filter.discount = { $gte: Number(discount) };
+    }
+
+    // rating filter
+    if (minRating) {
+      filter.rating = { $gte: Number(minRating) };
+    }
+
+    // Total count
+    const total = await products.countDocuments(filter);
+
+    // Paginated data
+    const allProducts = await products
+      .find(filter)
+      .sort({ addedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    res.json({ allProducts, total });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const getSingleProduct = async (req, res) => {
   const { id } = req.params;
   const result = await products.findOne({ _id: new ObjectId(id) });
@@ -216,11 +295,17 @@ export const updateProduct = async (req, res) => {
         description,
         stock,
         category,
-        color,
-        size,
         updatedAt: new Date().toISOString(),
       },
     };
+
+    if (size) {
+      update1.$set.size = size;
+    }
+
+    if (color) {
+      update1.$set.color = color;
+    }
 
     if (imagesToRemove.length > 0) {
       update1.$pull = {

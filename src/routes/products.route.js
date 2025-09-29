@@ -7,6 +7,7 @@ import {
   getSingleProduct,
   updateProduct,
   getProducts,
+  getOfferedProducts
 } from "../controllers/products.controller.js";
 import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
 import { verifySeller } from "../middleware/verifySeller.middleware.js";
@@ -21,6 +22,9 @@ productsRouter.get("/", verifyJwt, verifyAdmin, getAllProducts);
 
 // get for products page for all
 productsRouter.get("/all", getProducts);
+
+// get for offers page for all
+productsRouter.get("/offer", getOfferedProducts);
 
 productsRouter.get("/:id", getSingleProduct);
 
