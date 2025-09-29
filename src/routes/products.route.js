@@ -1,6 +1,4 @@
 import express from "express";
-import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
-import { verifySeller } from "../middleware/verifySeller.middleware.js";
 import {
   addProduct,
   deleteProduct,
@@ -8,13 +6,21 @@ import {
   getAllProducts,
   getSingleProduct,
   updateProduct,
+  getProducts,
 } from "../controllers/products.controller.js";
+import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
+import { verifySeller } from "../middleware/verifySeller.middleware.js";
+import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
 
 const productsRouter = express.Router();
 
 productsRouter.get("/my", verifyJwt, verifySeller, getMyProduct);
 
-productsRouter.get("/", getAllProducts);
+// get for all products page only for admin
+productsRouter.get("/", verifyJwt, verifyAdmin, getAllProducts);
+
+// get for products page for all
+productsRouter.get("/all", getProducts);
 
 productsRouter.get("/:id", getSingleProduct);
 
