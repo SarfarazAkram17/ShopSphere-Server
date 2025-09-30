@@ -88,11 +88,12 @@ export const getProducts = async (req, res) => {
     page = parseInt(page);
     limit = parseInt(limit);
 
-    const filter = {};
+    // Build $match filter (excluding price because we’ll use discountedPrice)
+    const matchFilter = {};
 
     // Search filter
     if (search) {
-      filter.$or = [
+      matchFilter.$or = [
         { name: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
       ];
@@ -101,46 +102,76 @@ export const getProducts = async (req, res) => {
     // Category filter
     if (category) {
       category = category.split(",");
-      filter.category = { $in: category };
+      matchFilter.category = { $in: category };
     }
 
     // Color filter
     if (color) {
-      // if color is a single string from query
-      filter.color = { $in: Array.isArray(color) ? color : [color] };
+      matchFilter.color = { $in: Array.isArray(color) ? color : [color] };
     }
 
     // Size filter
     if (size) {
-      filter.size = { $in: Array.isArray(size) ? size : [size] };
-    }
-
-    // Price filter
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
+      matchFilter.size = { $in: Array.isArray(size) ? size : [size] };
     }
 
     // Discount filter
     if (discount) {
-      filter.discount = { $gte: Number(discount) };
+      matchFilter.discount = { $gte: Number(discount) };
     }
 
-    // rating filter
+    // Rating filter
     if (minRating) {
-      filter.rating = { $gte: Number(minRating) };
+      matchFilter.rating = { $gte: Number(minRating) };
     }
 
-    // Total count
-    const total = await products.countDocuments(filter);
+    // Build aggregation
+    const pipeline = [
+      {
+        $addFields: {
+          discountedPrice: {
+            $cond: {
+              if: { $gt: ["$discount", 0] },
+              then: {
+                $subtract: [
+                  "$price",
+                  { $multiply: ["$price", { $divide: ["$discount", 100] }] },
+                ],
+              },
+              else: "$price",
+            },
+          },
+        },
+      },
+      {
+        $match: matchFilter,
+      },
+    ];
+
+    // Price filter using discountedPrice
+    if (minPrice || maxPrice) {
+      const priceFilter = {};
+      if (minPrice) priceFilter.$gte = Number(minPrice);
+      if (maxPrice) priceFilter.$lte = Number(maxPrice);
+      pipeline.push({
+        $match: { discountedPrice: priceFilter },
+      });
+    }
+
+    // Count total documents
+    const totalAgg = await products
+      .aggregate([...pipeline, { $count: "total" }])
+      .toArray();
+    const total = totalAgg.length > 0 ? totalAgg[0].total : 0;
 
     // Paginated data
     const allProducts = await products
-      .find(filter)
-      .sort({ addedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .aggregate([
+        ...pipeline,
+        { $sort: { addedAt: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+      ])
       .toArray();
 
     res.json({ allProducts, total });
@@ -167,11 +198,12 @@ export const getOfferedProducts = async (req, res) => {
     page = parseInt(page);
     limit = parseInt(limit);
 
-    const filter = { discount: { $gt: 0 } };
+    // Build $match filter (excluding price because we’ll use discountedPrice)
+    const matchFilter = { discount: { $gt: 0 } };
 
     // Search filter
     if (search) {
-      filter.$or = [
+      matchFilter.$or = [
         { name: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
       ];
@@ -180,46 +212,76 @@ export const getOfferedProducts = async (req, res) => {
     // Category filter
     if (category) {
       category = category.split(",");
-      filter.category = { $in: category };
+      matchFilter.category = { $in: category };
     }
 
     // Color filter
     if (color) {
-      // if color is a single string from query
-      filter.color = { $in: Array.isArray(color) ? color : [color] };
+      matchFilter.color = { $in: Array.isArray(color) ? color : [color] };
     }
 
     // Size filter
     if (size) {
-      filter.size = { $in: Array.isArray(size) ? size : [size] };
-    }
-
-    // Price filter
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
+      matchFilter.size = { $in: Array.isArray(size) ? size : [size] };
     }
 
     // Discount filter
     if (discount) {
-      filter.discount = { $gte: Number(discount) };
+      matchFilter.discount = { $gte: Number(discount) };
     }
 
-    // rating filter
+    // Rating filter
     if (minRating) {
-      filter.rating = { $gte: Number(minRating) };
+      matchFilter.rating = { $gte: Number(minRating) };
     }
 
-    // Total count
-    const total = await products.countDocuments(filter);
+    // Build aggregation
+    const pipeline = [
+      {
+        $addFields: {
+          discountedPrice: {
+            $cond: {
+              if: { $gt: ["$discount", 0] },
+              then: {
+                $subtract: [
+                  "$price",
+                  { $multiply: ["$price", { $divide: ["$discount", 100] }] },
+                ],
+              },
+              else: "$price",
+            },
+          },
+        },
+      },
+      {
+        $match: matchFilter,
+      },
+    ];
+
+    // Price filter using discountedPrice
+    if (minPrice || maxPrice) {
+      const priceFilter = {};
+      if (minPrice) priceFilter.$gte = Number(minPrice);
+      if (maxPrice) priceFilter.$lte = Number(maxPrice);
+      pipeline.push({
+        $match: { discountedPrice: priceFilter },
+      });
+    }
+
+    // Count total documents
+    const totalAgg = await products
+      .aggregate([...pipeline, { $count: "total" }])
+      .toArray();
+    const total = totalAgg.length > 0 ? totalAgg[0].total : 0;
 
     // Paginated data
     const allProducts = await products
-      .find(filter)
-      .sort({ addedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .aggregate([
+        ...pipeline,
+        { $sort: { addedAt: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+      ])
       .toArray();
 
     res.json({ allProducts, total });
