@@ -291,9 +291,50 @@ export const getOfferedProducts = async (req, res) => {
 };
 
 export const getSingleProduct = async (req, res) => {
-  const { id } = req.params;
-  const result = await products.findOne({ _id: new ObjectId(id) });
-  res.send(result);
+  try {
+    const { id } = req.params;
+
+    const product = await products.findOne({ _id: new ObjectId(id) });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const store = await sellers.findOne({ _id: new ObjectId(product.storeId) });
+    if (!store) {
+      return res.status(404).json({ message: "Store not found" });
+    }
+
+    // Get random products from same store (excluding the current one)
+    const sameStoreProducts = await products
+      .aggregate([
+        {
+          $match: {
+            storeId: store._id.toString(),
+            _id: { $ne: new ObjectId(id) }, // exclude the current product
+          },
+        },
+        { $sample: { size: 6 } },
+      ])
+      .toArray();
+
+    // Random 6 products from same category
+    const relevantProducts = await products
+      .aggregate([
+        {
+          $match: {
+            category: { $in: product.category },
+            _id: { $ne: new ObjectId(id) },
+            storeId: { $ne: store._id.toString() },
+          },
+        },
+        { $sample: { size: 6 } },
+      ])
+      .toArray();
+
+    res.send({ product, sameStoreProducts, relevantProducts });
+  } catch (error) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 export const addProduct = async (req, res) => {
