@@ -46,6 +46,8 @@ export const getAllProducts = async (req, res) => {
         query.sellerEmail = regex;
       } else if (searchType === "product name") {
         query.name = regex;
+      } else if (searchType === "productId") {
+        query._id = new ObjectId(search);
       } else if (searchType === "storeId") {
         query.storeId = regex;
       } else {
@@ -66,7 +68,7 @@ export const getAllProducts = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .send({ message: "Failed to fetch products", error: err.message });
+      .send({ message: "Failed to fetch products", error: error.message });
   }
 };
 

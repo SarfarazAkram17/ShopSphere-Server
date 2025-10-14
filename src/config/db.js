@@ -1,5 +1,5 @@
-import { MongoClient, ServerApiVersion } from 'mongodb'
-import 'dotenv/config'
+import { MongoClient, ServerApiVersion } from "mongodb";
+import "dotenv/config";
 
 const uri = process.env.MONGODB_URI;
 
@@ -14,14 +14,13 @@ const client = new MongoClient(uri, {
 export default async function connectDB() {
   try {
     await client.connect();
-
     const db = client.db("ShopSphere");
-    console.log("Connected to MongoDB!");
     return {
       users: db.collection("users"),
       sellers: db.collection("sellers"),
       riders: db.collection("riders"),
       products: db.collection("products"),
+      reviews: db.collection("reviews"),
     };
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
