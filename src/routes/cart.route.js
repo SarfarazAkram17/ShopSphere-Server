@@ -18,7 +18,7 @@ const cartRouter = express.Router();
 cartRouter.get("/", verifyJwt, verifyCustomer, getCartProducts); // done
 
 // Get cart with product details
-cartRouter.get("/details", verifyJwt, verifyCustomer, getCartDetails);
+cartRouter.get("/details", verifyJwt, verifyCustomer, getCartDetails); // done
 
 // Add product to cart
 cartRouter.post("/add", verifyJwt, verifyCustomer, addProductOnCart); // done

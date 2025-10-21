@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import connectDB from "../config/db.js";
 
-const { carts } = await connectDB();
+const { carts, products } = await connectDB();
 
 // Helper function to check if items match (productId + color + size)
 const itemsMatch = (item1, item2) => {
@@ -317,7 +317,6 @@ export const syncCart = async (req, res) => {
 export const getCartDetails = async (req, res) => {
   try {
     const email = req.user.email;
-    const { products } = await connectDB();
 
     const cart = await carts.findOne({ email });
 
