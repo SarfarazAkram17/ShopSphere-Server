@@ -20,7 +20,8 @@ export default async function connectDB() {
       sellers: db.collection("sellers"),
       riders: db.collection("riders"),
       products: db.collection("products"),
-      reviews: db.collection("reviews"),
+      carts: db.collection("carts"),
+      // reviews: db.collection("reviews"),
     };
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
