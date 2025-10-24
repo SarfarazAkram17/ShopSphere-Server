@@ -16,7 +16,7 @@ const itemsMatch = (item1, item2) => {
 // Get user's cart
 export const getCartProducts = async (req, res) => {
   try {
-    const email = req.user.email;
+    const email = req.query.email;
 
     const cart = await carts.findOne({ email });
 
@@ -34,7 +34,6 @@ export const getCartProducts = async (req, res) => {
 
     res.json({ success: true, cart: cart.items || [] });
   } catch (error) {
-    console.error("Get cart error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -103,7 +102,6 @@ export const addProductOnCart = async (req, res) => {
 
     res.json({ success: true, cart: items });
   } catch (error) {
-    console.error("Add to cart error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -114,7 +112,7 @@ export const updateCartItem = async (req, res) => {
     const email = req.user.email;
     const { productId, quantity, color, size } = req.body;
 
-    if (!productId || quantity === undefined) {
+    if (!productId || !quantity) {
       return res.status(400).json({
         success: false,
         message: "Product ID and quantity are required",
@@ -169,7 +167,6 @@ export const updateCartItem = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Update cart error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -214,104 +211,101 @@ export const removeFromCart = async (req, res) => {
 
     res.json({ success: true, cart: items });
   } catch (error) {
-    console.error("Remove from cart error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // Clear cart
-export const clearCart = async (req, res) => {
-  try {
-    const email = req.user.email;
+// export const clearCart = async (req, res) => {
+//   try {
+//     const email = req.user.email;
 
-    await carts.updateOne(
-      { email },
-      {
-        $set: {
-          items: [],
-          updatedAt: new Date().toISOString(),
-        },
-      },
-      { upsert: true }
-    );
+//     await carts.updateOne(
+//       { email },
+//       {
+//         $set: {
+//           items: [],
+//           updatedAt: new Date().toISOString(),
+//         },
+//       },
+//       { upsert: true }
+//     );
 
-    res.json({ success: true, cart: [] });
-  } catch (error) {
-    console.error("Clear cart error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+//     res.json({ success: true, cart: [] });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 
 // Sync local cart to server (merge carts on login)
-export const syncCart = async (req, res) => {
-  try {
-    const email = req.user.email;
-    const { localCartItems } = req.body;
+// export const syncCart = async (req, res) => {
+//   try {
+//     const email = req.user.email;
+//     const { localCartItems } = req.body;
 
-    let cart = await carts.findOne({ email });
+//     let cart = await carts.findOne({ email });
 
-    let items = [];
+//     let items = [];
 
-    if (cart) {
-      items = cart.items || [];
-    }
+//     if (cart) {
+//       items = cart.items || [];
+//     }
 
-    // Merge local cart items with server cart
-    if (
-      localCartItems &&
-      Array.isArray(localCartItems) &&
-      localCartItems.length > 0
-    ) {
-      localCartItems.forEach((localItem) => {
-        const searchItem = {
-          productId: new ObjectId(localItem.productId),
-          color: localItem.color || null,
-          size: localItem.size || null,
-        };
+//     // Merge local cart items with server cart
+//     if (
+//       localCartItems &&
+//       Array.isArray(localCartItems) &&
+//       localCartItems.length > 0
+//     ) {
+//       localCartItems.forEach((localItem) => {
+//         const searchItem = {
+//           productId: new ObjectId(localItem.productId),
+//           color: localItem.color || null,
+//           size: localItem.size || null,
+//         };
 
-        const existingIndex = items.findIndex((item) =>
-          itemsMatch(item, searchItem)
-        );
+//         const existingIndex = items.findIndex((item) =>
+//           itemsMatch(item, searchItem)
+//         );
 
-        if (existingIndex >= 0) {
-          // Add quantities if exact match exists
-          items[existingIndex].quantity += parseInt(localItem.quantity);
-        } else {
-          // Add as new item
-          const newItem = {
-            productId: new ObjectId(localItem.productId),
-            quantity: parseInt(localItem.quantity),
-          };
+//         if (existingIndex >= 0) {
+//           // Add quantities if exact match exists
+//           items[existingIndex].quantity += parseInt(localItem.quantity);
+//         } else {
+//           // Add as new item
+//           const newItem = {
+//             productId: new ObjectId(localItem.productId),
+//             quantity: parseInt(localItem.quantity),
+//           };
 
-          if (localItem.color) newItem.color = localItem.color;
-          if (localItem.size) newItem.size = localItem.size;
+//           if (localItem.color) newItem.color = localItem.color;
+//           if (localItem.size) newItem.size = localItem.size;
 
-          items.push(newItem);
-        }
-      });
-    }
+//           items.push(newItem);
+//         }
+//       });
+//     }
 
-    // Update or insert cart
-    await carts.updateOne(
-      { email },
-      {
-        $set: {
-          items: items,
-          updatedAt: new Date().toISOString(),
-        },
-        $setOnInsert: {
-          createdAt: new Date().toISOString(),
-        },
-      },
-      { upsert: true }
-    );
+//     // Update or insert cart
+//     await carts.updateOne(
+//       { email },
+//       {
+//         $set: {
+//           items: items,
+//           updatedAt: new Date().toISOString(),
+//         },
+//         $setOnInsert: {
+//           createdAt: new Date().toISOString(),
+//         },
+//       },
+//       { upsert: true }
+//     );
 
-    res.json({ success: true, cart: items });
-  } catch (error) {
-    console.error("Sync cart error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+//     res.json({ success: true, cart: items });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 
 // Get cart with populated product details
 export const getCartDetails = async (req, res) => {
@@ -364,7 +358,6 @@ export const getCartDetails = async (req, res) => {
 
     res.json({ success: true, cart: cartWithDetails });
   } catch (error) {
-    console.error("Get cart details error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -421,7 +414,6 @@ export const removeCartItems = async (req, res) => {
 
     res.json({ success: true, cart: items });
   } catch (error) {
-    console.error("Remove cart items error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
