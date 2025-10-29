@@ -6,36 +6,33 @@ import {
   getCartProducts,
   updateCartItem,
   removeFromCart,
-  // clearCart,
-  // syncCart,
   getCartDetails,
-  removeCartItems
+  removeCartItems,
 } from "../controllers/cart.controller.js";
 
 const cartRouter = express.Router();
 
 // Get cart items
-cartRouter.get("/", getCartProducts); // done
+cartRouter.get("/", getCartProducts);
 
 // Get cart with product details
-cartRouter.get("/details", verifyJwt, verifyCustomer, getCartDetails); // done
+cartRouter.get("/details", verifyJwt, verifyCustomer, getCartDetails);
 
 // Add product to cart
-cartRouter.post("/add", verifyJwt, verifyCustomer, addProductOnCart); // done
+cartRouter.post("/add", verifyJwt, verifyCustomer, addProductOnCart);
 
 // Update cart item
-cartRouter.put("/update", verifyJwt, verifyCustomer, updateCartItem); //done
+cartRouter.put("/update", verifyJwt, verifyCustomer, updateCartItem);
 
 // Remove single item from cart
-cartRouter.delete("/remove/:productId", verifyJwt, verifyCustomer, removeFromCart); // done
+cartRouter.delete(
+  "/remove/:productId",
+  verifyJwt,
+  verifyCustomer,
+  removeFromCart
+);
 
 // Remove multiple items from cart (after order)
-cartRouter.post("/remove-items", verifyJwt, verifyCustomer, removeCartItems); //done
-
-// Clear entire cart
-// cartRouter.delete("/clear", verifyJwt, verifyCustomer, clearCart);
-
-// Sync local cart with server
-// cartRouter.post("/sync", verifyJwt, verifyCustomer, syncCart);
+cartRouter.post("/remove-items", verifyJwt, verifyCustomer, removeCartItems);
 
 export default cartRouter;

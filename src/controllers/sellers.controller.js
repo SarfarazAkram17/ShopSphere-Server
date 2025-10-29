@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import connectDB from "../config/db.js";
 
-const { sellers, riders, users } = await connectDB();
+const { sellers, riders, users, products } = await connectDB();
 
 export const getPendingSellers = async (req, res) => {
   try {
@@ -193,9 +193,18 @@ export const updateStore = async (req, res) => {
 
   try {
     const result = await sellers.updateOne(query, updatedDoc);
+
+    // update store names on products
+    if (req.body.storeName && req.body.storeName !== store.storeName) {
+      const productUpdateResult = await products.updateMany(
+        { storeId: storeId },
+        { $set: { storeName: req.body.storeName } }
+      );
+    }
+
     res.send(result);
   } catch (err) {
-    res.status(500).send({ message: "Failed to update seller informations" });
+    res.status(500).send({ message: err.message });
   }
 };
 
