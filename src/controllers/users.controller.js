@@ -310,7 +310,11 @@ export const deleteUserAddress = async (req, res) => {
     }
 
     // If the deleted address was a default, set the first remaining address as default
-    if (addressToDelete.isDefaultShipping || addressToDelete.isDefaultBilling) {
+    if (
+      addressToDelete.isDefaultShipping ||
+      addressToDelete.isDefaultBilling ||
+      addressToDelete.selected
+    ) {
       const updatedUser = await users.findOne({ email });
 
       if (updatedUser.addresses && updatedUser.addresses.length > 0) {
@@ -322,6 +326,10 @@ export const deleteUserAddress = async (req, res) => {
 
         if (addressToDelete.isDefaultBilling) {
           updateDefaults["addresses.0.isDefaultBilling"] = true;
+        }
+
+        if (addressToDelete.selected) {
+          updateDefaults["addresses.0.selected"] = true;
         }
 
         if (Object.keys(updateDefaults).length > 0) {
