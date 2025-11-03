@@ -10,6 +10,7 @@ import {
   deleteUserAddress,
   setDefaultShippingAddress,
   setDefaultBillingAddress,
+  setDefaultSelected,
 } from "../controllers/users.controller.js";
 import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
@@ -41,6 +42,13 @@ userRouter.put(
   verifyJwt,
   verifyCustomer,
   setDefaultBillingAddress
+);
+
+userRouter.put(
+  "/address/:id/selected",
+  verifyJwt,
+  verifyCustomer,
+  setDefaultSelected
 );
 
 userRouter.patch("/", verifyJwt, updateProfile);

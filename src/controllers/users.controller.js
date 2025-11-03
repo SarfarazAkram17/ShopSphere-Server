@@ -171,12 +171,14 @@ export const addUserAddresses = async (req, res) => {
       label: newAddress.label,
       isDefaultShipping: false,
       isDefaultBilling: false,
+      selected: false,
     };
 
     // If this is the first address, make it default for both shipping and billing
     if (!user.addresses || user.addresses.length === 0) {
       addressToAdd.isDefaultShipping = true;
       addressToAdd.isDefaultBilling = true;
+      addressToAdd.selected = true;
     }
 
     // Update user with new address
@@ -440,6 +442,61 @@ export const setDefaultBillingAddress = async (req, res) => {
 
     res.send({
       message: "Default billing address updated successfully",
+    });
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+};
+
+export const setDefaultSelected = async (req, res) => {
+  try {
+    const email = req.user.email;
+    const addressId = req.params.id;
+
+    if (!email) {
+      return res.status(400).send({ message: "Email is required" });
+    }
+
+    if (!addressId) {
+      return res.status(400).send({ message: "Address ID is required" });
+    }
+
+    // Find user
+    const user = await users.findOne({ email });
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // Check if address exists
+    const addressExists = user.addresses?.some(
+      (addr) => addr._id.toString() === addressId
+    );
+
+    if (!addressExists) {
+      return res.status(404).send({ message: "Address not found" });
+    }
+
+    // Set all addresses selected to false
+    await users.updateOne(
+      { email },
+      { $set: { "addresses.$[].selected": false } }
+    );
+
+    // Set the selected address as default billing
+    const result = await users.updateOne(
+      { email, "addresses._id": new ObjectId(addressId) },
+      { $set: { "addresses.$.selected": true } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(400)
+        .send({ message: "Failed to set default selected address" });
+    }
+
+    res.send({
+      message: "Default selected address updated successfully",
     });
   } catch (error) {
     res.status(500).send({ message: error.message });
