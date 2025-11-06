@@ -13,6 +13,13 @@ const itemsMatch = (item1, item2) => {
   return productMatch && colorMatch && sizeMatch;
 };
 
+// Helper function to calculate total quantity for a product across all variants
+const calculateTotalQuantityForProduct = (items, productId) => {
+  return items
+    .filter((item) => item.productId.toString() === productId.toString())
+    .reduce((total, item) => total + item.quantity, 0);
+};
+
 // Get user's cart
 export const getCartProducts = async (req, res) => {
   try {
@@ -51,13 +58,28 @@ export const addProductOnCart = async (req, res) => {
       });
     }
 
-    const cart = await carts.findOne({ email });
+    // Fetch product to check stock
+    const product = await products.findOne({ _id: new ObjectId(productId) });
 
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const cart = await carts.findOne({ email });
     let items = [];
 
     if (cart) {
       items = cart.items || [];
     }
+
+    // Calculate total quantity already in cart for this product (all variants)
+    const existingTotalQuantity = calculateTotalQuantityForProduct(
+      items,
+      productId
+    );
 
     // Create new item object for comparison
     const newItem = {
@@ -77,11 +99,31 @@ export const addProductOnCart = async (req, res) => {
       itemsMatch(item, newItem)
     );
 
+    let newTotalQuantity;
+
     if (existingItemIndex >= 0) {
       // Update existing item quantity (same product, color, and size)
+      newTotalQuantity = existingTotalQuantity + parseInt(quantity);
+    } else {
+      // Adding as new variant
+      newTotalQuantity = existingTotalQuantity + parseInt(quantity);
+    }
+
+    // Check if new total exceeds stock
+    if (newTotalQuantity > product.stock) {
+      const availableToAdd = product.stock - existingTotalQuantity;
+      return res.status(400).json({
+        success: false,
+        message: `Cannot add ${quantity} items. Only ${availableToAdd} items available (${existingTotalQuantity} already in cart, ${product.stock} total stock)`,
+        availableToAdd,
+        existingQuantity: existingTotalQuantity,
+        totalStock: product.stock,
+      });
+    }
+
+    if (existingItemIndex >= 0) {
       items[existingItemIndex].quantity += parseInt(quantity);
     } else {
-      // Add as new item (different color/size combination)
       items.push(newItem);
     }
 
@@ -126,6 +168,16 @@ export const updateCartItem = async (req, res) => {
       });
     }
 
+    // Fetch product to check stock
+    const product = await products.findOne({ _id: new ObjectId(productId) });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
     const cart = await carts.findOne({ email });
 
     if (!cart) {
@@ -146,26 +198,45 @@ export const updateCartItem = async (req, res) => {
 
     const itemIndex = items.findIndex((item) => itemsMatch(item, searchItem));
 
-    if (itemIndex >= 0) {
-      items[itemIndex].quantity = parseInt(quantity);
-
-      await carts.updateOne(
-        { email },
-        {
-          $set: {
-            items: items,
-            updatedAt: new Date().toISOString(),
-          },
-        }
-      );
-
-      return res.json({ success: true, cart: items });
-    } else {
+    if (itemIndex < 0) {
       return res.status(404).json({
         success: false,
         message: "Item not found in cart",
       });
     }
+
+    // Calculate total quantity for this product (excluding current item)
+    const existingTotalQuantity = calculateTotalQuantityForProduct(
+      items,
+      productId
+    );
+    const currentItemQuantity = items[itemIndex].quantity;
+    const otherVariantsQuantity = existingTotalQuantity - currentItemQuantity;
+
+    // Check if new total would exceed stock
+    const newTotalQuantity = otherVariantsQuantity + parseInt(quantity);
+
+    if (newTotalQuantity > product.stock) {
+      const maxAllowed = product.stock - otherVariantsQuantity;
+      return res.status(400).json({
+        success: false,
+        message: `Cannot set quantity to ${quantity}. Maximum allowed is ${maxAllowed} (${otherVariantsQuantity} in other variants, ${product.stock} total stock)`,
+      });
+    }
+
+    items[itemIndex].quantity = parseInt(quantity);
+
+    await carts.updateOne(
+      { email },
+      {
+        $set: {
+          items: items,
+          updatedAt: new Date().toISOString(),
+        },
+      }
+    );
+
+    res.json({ success: true, cart: items });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -321,6 +392,93 @@ export const removeCartItems = async (req, res) => {
     );
 
     res.json({ success: true, cart: items });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getCheckoutItems = async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Items array is required",
+      });
+    }
+
+    // Extract unique product IDs
+    const productIds = [...new Set(items.map((item) => item.productId))].map(
+      (id) => new ObjectId(id)
+    );
+
+    // Fetch all products from database
+    const productList = await products
+      .find({
+        _id: { $in: productIds },
+      })
+      .toArray();
+
+    // Map products with the requested quantity, color, and size
+    const checkoutItems = items
+      .map((item) => {
+        const product = productList.find(
+          (p) => p._id.toString() === item.productId
+        );
+
+        // If product not found, return null (will be filtered out)
+        if (!product) {
+          console.warn(`Product not found: ${item.productId}`);
+          return null;
+        }
+
+        // Check if product is out of stock
+        if (product.stock < 1) {
+          console.warn(`Product out of stock: ${product.name}`);
+          return null;
+        }
+
+        // Check if requested quantity exceeds available stock
+        if (item.quantity > product.stock) {
+          console.warn(
+            `Requested quantity (${item.quantity}) exceeds stock (${product.stock}) for: ${product.name}`
+          );
+          // Adjust to available stock
+          item.quantity = product.stock;
+        }
+
+        const checkoutItem = {
+          productId: item.productId,
+          quantity: parseInt(item.quantity),
+          product: {
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            discount: product.discount || 0,
+            images: product.images,
+            stock: product.stock,
+            storeName: product.storeName,
+            storeId: product.storeId,
+          },
+        };
+
+        // Only add color if it exists in the request
+        if (item.color) {
+          checkoutItem.color = item.color;
+        }
+
+        // Only add size if it exists in the request
+        if (item.size) {
+          checkoutItem.size = item.size;
+        }
+
+        return checkoutItem;
+      })
+      .filter((item) => item !== null); // Remove null entries (unavailable products)
+
+    res.json({ success: true, items: checkoutItems });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

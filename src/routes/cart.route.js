@@ -8,6 +8,7 @@ import {
   removeFromCart,
   getCartDetails,
   removeCartItems,
+  getCheckoutItems,
 } from "../controllers/cart.controller.js";
 
 const cartRouter = express.Router();
@@ -34,5 +35,6 @@ cartRouter.delete(
 
 // Remove multiple items from cart (after order)
 cartRouter.post("/remove-items", verifyJwt, verifyCustomer, removeCartItems);
+cartRouter.post("/checkout-items", verifyJwt, verifyCustomer, getCheckoutItems);
 
 export default cartRouter;
