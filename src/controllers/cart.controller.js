@@ -221,6 +221,9 @@ export const updateCartItem = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: `Cannot set quantity to ${quantity}. Maximum allowed is ${maxAllowed} (${otherVariantsQuantity} in other variants, ${product.stock} total stock)`,
+        maxAllowed,
+        otherVariantsQuantity,
+        totalStock: product.stock,
       });
     }
 
