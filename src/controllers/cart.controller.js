@@ -142,7 +142,7 @@ export const addProductOnCart = async (req, res) => {
       { upsert: true }
     );
 
-    res.json({ success: true, cart: items });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -239,7 +239,7 @@ export const updateCartItem = async (req, res) => {
       }
     );
 
-    res.json({ success: true, cart: items });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -394,7 +394,7 @@ export const removeCartItems = async (req, res) => {
       }
     );
 
-    res.json({ success: true, cart: items });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -402,7 +402,6 @@ export const removeCartItems = async (req, res) => {
 
 export const getCheckoutItems = async (req, res) => {
   try {
-    const email = req.user.email;
     const { items } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {

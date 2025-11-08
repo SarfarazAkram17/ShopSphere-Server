@@ -33,8 +33,10 @@ cartRouter.delete(
   removeFromCart
 );
 
-// Remove multiple items from cart (after order)
+// Remove multiple items from cart
 cartRouter.post("/remove-items", verifyJwt, verifyCustomer, removeCartItems);
+
+// get multiple items from cart for checkout
 cartRouter.post("/checkout-items", verifyJwt, verifyCustomer, getCheckoutItems);
 
 export default cartRouter;
