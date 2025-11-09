@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import connectDB from "../config/db.js";
 
-const { carts, products } = await connectDB();
+const { carts, products, sellers } = await connectDB();
 
 // Helper function to check if items match (productId + color + size)
 const itemsMatch = (item1, item2) => {
@@ -321,6 +321,18 @@ export const getCartDetails = async (req, res) => {
 
         if (!product) return null;
 
+        let imageIndex = 0;
+
+        if (item.color && product.color && Array.isArray(product.color)) {
+          const colorIndex = product.color.findIndex(
+            (color) => color.toLowerCase() === item.color.toLowerCase()
+          );
+
+          if (colorIndex !== -1 && product.images[colorIndex]) {
+            imageIndex = colorIndex;
+          }
+        }
+
         return {
           ...item,
           productId: item.productId.toString(),
@@ -329,7 +341,7 @@ export const getCartDetails = async (req, res) => {
             name: product.name,
             price: product.price,
             discount: product.discount,
-            images: product.images,
+            image: product.images[imageIndex],
             stock: product.stock,
             storeName: product.storeName,
             storeId: product.storeId,
@@ -340,6 +352,7 @@ export const getCartDetails = async (req, res) => {
 
     res.json({ success: true, cart: cartWithDetails });
   } catch (error) {
+    console.error("Get cart details error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -400,6 +413,11 @@ export const removeCartItems = async (req, res) => {
   }
 };
 
+// ============================================
+// FILE: controllers/cart.controller.js
+// FIXED getCheckoutItems - Properly handling async operations
+// ============================================
+
 export const getCheckoutItems = async (req, res) => {
   try {
     const { items } = req.body;
@@ -422,6 +440,26 @@ export const getCheckoutItems = async (req, res) => {
         _id: { $in: productIds },
       })
       .toArray();
+
+    // Extract unique store IDs from products
+    const storeIds = [
+      ...new Set(
+        productList.map((p) => p.storeId).filter((id) => id) // Remove null/undefined
+      ),
+    ].map((id) => new ObjectId(id));
+
+    // Fetch all stores in one query (more efficient)
+    const storeList = await sellers
+      .find({
+        _id: { $in: storeIds },
+      })
+      .toArray();
+
+    // Create a store lookup map for quick access
+    const storeMap = {};
+    storeList.forEach((store) => {
+      storeMap[store._id.toString()] = store;
+    });
 
     // Map products with the requested quantity, color, and size
     const checkoutItems = items
@@ -451,6 +489,22 @@ export const getCheckoutItems = async (req, res) => {
           item.quantity = product.stock;
         }
 
+        // Get store from the pre-fetched map
+        const store = storeMap[product.storeId];
+
+        // Find the index of the selected color in product's color array
+        let imageIndex = 0;
+
+        if (item.color && product.color && Array.isArray(product.color)) {
+          const colorIndex = product.color.findIndex(
+            (color) => color.toLowerCase() === item.color.toLowerCase()
+          );
+
+          if (colorIndex !== -1 && product.images[colorIndex]) {
+            imageIndex = colorIndex;
+          }
+        }
+
         const checkoutItem = {
           productId: item.productId,
           quantity: parseInt(item.quantity),
@@ -459,10 +513,17 @@ export const getCheckoutItems = async (req, res) => {
             name: product.name,
             price: product.price,
             discount: product.discount || 0,
-            images: product.images,
+            image: product.images[imageIndex],
             stock: product.stock,
             storeName: product.storeName,
             storeId: product.storeId,
+            storeInfo: {
+              storeName: store.storeName,
+              address: store.storeAddress,
+              district: store.district,
+              region: store.region,
+              thana: store.thana,
+            },
           },
         };
 
@@ -478,10 +539,11 @@ export const getCheckoutItems = async (req, res) => {
 
         return checkoutItem;
       })
-      .filter((item) => item !== null); // Remove null entries (unavailable products)
+      .filter((item) => item !== null);
 
     res.json({ success: true, items: checkoutItems });
   } catch (error) {
+    console.error("Get checkout items error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
