@@ -352,7 +352,6 @@ export const getCartDetails = async (req, res) => {
 
     res.json({ success: true, cart: cartWithDetails });
   } catch (error) {
-    console.error("Get cart details error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -412,11 +411,6 @@ export const removeCartItems = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// ============================================
-// FILE: controllers/cart.controller.js
-// FIXED getCheckoutItems - Properly handling async operations
-// ============================================
 
 export const getCheckoutItems = async (req, res) => {
   try {
@@ -543,7 +537,6 @@ export const getCheckoutItems = async (req, res) => {
 
     res.json({ success: true, items: checkoutItems });
   } catch (error) {
-    console.error("Get checkout items error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
