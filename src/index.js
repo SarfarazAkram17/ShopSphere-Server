@@ -15,6 +15,8 @@ import sellersRouter from "./routes/sellers.route.js";
 import ridersRouter from "./routes/riders.route.js";
 import productsRouter from "./routes/products.route.js";
 import cartRouter from "./routes/cart.route.js";
+import ordersRouter from "./routes/orders.route.js";
+import reviewsRouter from "./routes/reviews.route.js";
 
 app.use(
   cors({
@@ -37,6 +39,8 @@ async function startServer() {
     app.use("/riders", ridersRouter);
     app.use("/products", productsRouter);
     app.use("/cart", cartRouter);
+    app.use("/orders", ordersRouter);
+    app.use("/reviews", reviewsRouter);
 
     server.listen(port, () => {
       console.log(`server is running on port ${port}`);
