@@ -513,6 +513,7 @@ export const getCheckoutItems = async (req, res) => {
             storeId: product.storeId,
             storeInfo: {
               storeName: store.storeName,
+              storeEmail: store.email,
               address: store.storeAddress,
               district: store.district,
               region: store.region,
