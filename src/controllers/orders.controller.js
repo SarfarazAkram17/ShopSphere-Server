@@ -154,22 +154,22 @@ export const createOrder = async (req, res) => {
     }
 
     // Update product stock (decrement)
-    const stockUpdatePromises = [];
-    for (const store of stores) {
-      for (const item of store.items) {
-        stockUpdatePromises.push(
-          products.updateOne(
-            { _id: new ObjectId(item.productId) },
-            {
-              $inc: { stock: -item.quantity },
-              $set: { updatedAt: new Date().toISOString() },
-            }
-          )
-        );
-      }
-    }
+    // const stockUpdatePromises = [];
+    // for (const store of stores) {
+    //   for (const item of store.items) {
+    //     stockUpdatePromises.push(
+    //       products.updateOne(
+    //         { _id: new ObjectId(item.productId) },
+    //         {
+    //           $inc: { stock: -item.quantity },
+    //           $set: { updatedAt: new Date().toISOString() },
+    //         }
+    //       )
+    //     );
+    //   }
+    // }
 
-    await Promise.all(stockUpdatePromises);
+    // await Promise.all(stockUpdatePromises);
 
     // Remove ordered items from cart
     const cart = await carts.findOne({ email: customerEmail });
