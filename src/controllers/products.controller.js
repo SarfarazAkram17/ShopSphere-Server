@@ -91,7 +91,7 @@ export const getProducts = async (req, res) => {
     limit = parseInt(limit);
 
     // Build $match filter (excluding price because we’ll use discountedPrice)
-    const matchFilter = {};
+    const matchFilter = { status: "active" };
 
     // Search filter
     if (search) {
@@ -201,7 +201,7 @@ export const getOfferedProducts = async (req, res) => {
     limit = parseInt(limit);
 
     // Build $match filter (excluding price because we’ll use discountedPrice)
-    const matchFilter = { discount: { $gt: 0 } };
+    const matchFilter = { status: "active", discount: { $gt: 0 } };
 
     // Search filter
     if (search) {
@@ -348,6 +348,7 @@ export const addProduct = async (req, res) => {
       storeId: seller._id.toString(),
       storeName: seller.storeName,
       ...req.body,
+      status: "active",
     };
 
     const result = await products.insertOne(newProduct);

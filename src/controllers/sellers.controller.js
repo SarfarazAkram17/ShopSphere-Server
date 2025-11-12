@@ -245,6 +245,27 @@ export const updateSellerStatus = async (req, res) => {
       const userQuery = { email };
       const updatedUserDoc = { $set: { role: "seller" } };
       await users.updateOne(userQuery, updatedUserDoc);
+      await products.updateMany(
+        { storeId: id },
+        {
+          $set: {
+            status: "active",
+            updateAt: new Date().toISOString(),
+          },
+        }
+      );
+    }
+    if (status === "deactive") {
+      const productsQuery = { storeId: id };
+      await products.updateMany(
+        { storeId: id },
+        {
+          $set: {
+            status: "deactive",
+            updateAt: new Date().toISOString(),
+          },
+        }
+      );
     }
 
     res.send(result);
