@@ -56,12 +56,12 @@ export const createOrder = async (req, res) => {
         }
 
         // Check if product is available
-        // if (product.status !== "active") {
-        //   return res.status(400).json({
-        //     success: false,
-        //     message: `Product is not available: ${item.productName}`,
-        //   });
-        // }
+        if (product.status !== "active") {
+          return res.status(400).json({
+            success: false,
+            message: `Product is not available: ${item.productName}`,
+          });
+        }
 
         // Check stock availability
         if (product.stock < item.quantity) {
@@ -153,24 +153,6 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Update product stock (decrement)
-    // const stockUpdatePromises = [];
-    // for (const store of stores) {
-    //   for (const item of store.items) {
-    //     stockUpdatePromises.push(
-    //       products.updateOne(
-    //         { _id: new ObjectId(item.productId) },
-    //         {
-    //           $inc: { stock: -item.quantity },
-    //           $set: { updatedAt: new Date().toISOString() },
-    //         }
-    //       )
-    //     );
-    //   }
-    // }
-
-    // await Promise.all(stockUpdatePromises);
-
     // Remove ordered items from cart
     const cart = await carts.findOne({ email: customerEmail });
 
@@ -221,9 +203,93 @@ export const createOrder = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Order placed successfully",
+      id: result.insertedId,
     });
   } catch (error) {
-    console.error("Error creating order:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const confirmOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const customerEmail = req.user.email;
+
+    // Find the order
+    const order = await orders.findOne({
+      _id: new ObjectId(orderId),
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Verify customer email matches
+    if (order.customerEmail !== customerEmail) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You can only confirm your own orders",
+      });
+    }
+
+    // Check if order is already confirmed
+    if (order.orderStatus === "pending" || order.orderStatus === "confirmed") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already confirmed",
+      });
+    }
+
+    // Update order status and payment method
+    const result = await orders.updateOne(
+      { _id: new ObjectId(orderId) },
+      {
+        $set: {
+          orderStatus: "pending",
+          paymentMethod: "cash_on_delivery",
+          cashPaymentFee: 20,
+          totalAmount: Number(order.totalAmount + 20),
+          updatedAt: new Date().toISOString(),
+        },
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to confirm order",
+      });
+    }
+
+    // Update product stock (decrement)
+    const stockUpdatePromises = [];
+    for (const store of order.stores) {
+      for (const item of store.items) {
+        stockUpdatePromises.push(
+          products.updateOne(
+            { _id: new ObjectId(item.productId) },
+            {
+              $inc: { stock: -item.quantity },
+              $set: { updatedAt: new Date().toISOString() },
+            }
+          )
+        );
+      }
+    }
+
+    await Promise.all(stockUpdatePromises);
+
+    return res.status(200).json({
+      success: true,
+      message: "Order confirmed successfully",
+    });
+  } catch (error) {
     return res.status(500).json({
       success: false,
       message: error.message,
