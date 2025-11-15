@@ -3,6 +3,44 @@ import { ObjectId } from "mongodb";
 
 const { orders, products, carts } = await connectDB();
 
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await orders.find().toArray();
+    res.send(orders);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getMyOrders = async (req, res) => {
+  try {
+    const { email } = req.user;
+    const myOrders = await orders.find({ customerEmail: email }).toArray();
+    res.send(myOrders);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getSingleOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await orders.findOne({ _id: new ObjectId(orderId) });
+    res.send(order);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const createOrder = async (req, res) => {
   try {
     const {
