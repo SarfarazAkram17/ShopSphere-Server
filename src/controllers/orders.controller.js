@@ -274,12 +274,12 @@ export const confirmOrder = async (req, res) => {
     if (order.customerEmail !== customerEmail) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized: You can only confirm your own orders",
+        message: "Forbidden: You can only confirm your own orders",
       });
     }
 
     // Check if order is already confirmed
-    if (order.orderStatus === "pending" || order.orderStatus === "confirmed") {
+    if (order.orderStatus === "confirmed") {
       return res.status(400).json({
         success: false,
         message: "Order is already confirmed",
