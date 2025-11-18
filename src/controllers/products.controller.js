@@ -335,7 +335,7 @@ export const getSingleProduct = async (req, res) => {
 
     res.send({ product, sameStoreProducts, relevantProducts });
   } catch (error) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -358,8 +358,8 @@ export const addProduct = async (req, res) => {
       message: "Product added successfully",
       productId,
     });
-  } catch (_) {
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -433,7 +433,7 @@ export const updateProduct = async (req, res) => {
 
     res.send({ success: true, message: "Product updated successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

@@ -44,11 +44,14 @@ export const createPayment = async (req, res) => {
           paymentStatus,
           orderStatus: "confirmed",
           "stores.$[].storeOrderStatus": "confirmed",
-          paymentId: paymentResult.insertedId,
+          paymentId: paymentResult.insertedId.toString(),
           paidAt: new Date().toISOString(),
         },
         $unset: {
-          cashPaymentFee,
+          cashPaymentFee: "",
+        },
+        $inc: {
+          totalAmount: -20,
         },
       }
     );
