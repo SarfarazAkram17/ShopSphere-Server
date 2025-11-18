@@ -22,6 +22,7 @@ export default async function connectDB() {
       products: db.collection("products"),
       carts: db.collection("carts"),
       orders: db.collection("orders"),
+      payments: db.collection("payments"),
       // reviews: db.collection("reviews"),
     };
   } catch (error) {
