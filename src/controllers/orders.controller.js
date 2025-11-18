@@ -55,6 +55,7 @@ export const createOrder = async (req, res) => {
       totalAmount,
       paymentMethod,
       transactionId,
+      cashPaymentFee,
     } = req.body;
 
     // Validation
@@ -75,7 +76,7 @@ export const createOrder = async (req, res) => {
     if (customerEmail !== req.user.email) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized: Email mismatch",
+        message: "Forbidden: Email mismatch",
       });
     }
 
@@ -176,6 +177,7 @@ export const createOrder = async (req, res) => {
       itemsTotal,
       totalDeliveryCharge,
       totalAmount,
+      cashPaymentFee,
       paymentMethod: paymentMethod || null,
       transactionId: transactionId || null,
       createdAt: new Date().toISOString(),
