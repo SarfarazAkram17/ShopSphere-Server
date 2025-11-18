@@ -35,17 +35,20 @@ export const createPayment = async (req, res) => {
 
     const paymentResult = await payments.insertOne(paymentDoc);
 
-    const updateOrder = await orders.updateOne(
+    await orders.updateOne(
       { _id: new ObjectId(orderId) },
       {
         $set: {
           paymentMethod,
           transactionId,
           paymentStatus,
-          orderStatus: 'confirmed',
-          'stores.$[].storeOrderStatus': 'confirmed',
+          orderStatus: "confirmed",
+          "stores.$[].storeOrderStatus": "confirmed",
           paymentId: paymentResult.insertedId,
           paidAt: new Date().toISOString(),
+        },
+        $unset: {
+          cashPaymentFee,
         },
       }
     );
