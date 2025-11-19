@@ -239,6 +239,26 @@ export const createOrder = async (req, res) => {
       );
     }
 
+    const order = await orders.findOne({
+      _id: new ObjectId(result.insertedId.toString()),
+    });
+    const stockUpdatePromises = [];
+    for (const store of order.stores) {
+      for (const item of store.items) {
+        stockUpdatePromises.push(
+          products.updateOne(
+            { _id: new ObjectId(item.productId) },
+            {
+              $inc: { stock: -item.quantity },
+              $set: { updatedAt: new Date().toISOString() },
+            }
+          )
+        );
+      }
+    }
+
+    await Promise.all(stockUpdatePromises);
+
     // Return success response
     return res.status(201).json({
       success: true,
