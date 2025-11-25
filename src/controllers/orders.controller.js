@@ -18,12 +18,89 @@ export const getAllOrders = async (req, res) => {
 export const getMyOrders = async (req, res) => {
   try {
     const { email } = req.user;
-    const myOrders = await orders.find({ customerEmail: email }).toArray();
-    res.send(myOrders);
+    const { page = 1, limit = 10, searchTerm = "", status } = req.query;
+
+    // Convert page and limit to numbers
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build the filter query
+    let filter = { customerEmail: email };
+
+    // Add status filter if provided and not "all"
+    if (status && status !== "all") {
+      filter.orderStatus = status;
+    }
+
+    // Add search filter if searchTerm is provided
+    if (searchTerm && searchTerm.trim() !== "") {
+      const trimmedSearch = searchTerm.trim();
+      const searchRegex = new RegExp(trimmedSearch, "i");
+
+      // Build $or array for search conditions
+      const searchConditions = [
+        { "stores.storeName": searchRegex }, // Search by store name
+        { "stores.items.productName": searchRegex }, // Search by product name
+        { "shippingAddress.name": searchRegex }, // Search by customer name
+        { "shippingAddress.phone": searchRegex }, // Search by phone
+      ];
+
+      // Check if searchTerm is a valid ObjectId (24 hex characters)
+      if (ObjectId.isValid(trimmedSearch)) {
+        searchConditions.push({ _id: new ObjectId(trimmedSearch) });
+      }
+
+      filter.$or = searchConditions;
+    }
+
+    // Get total count for pagination
+    const total = await orders.countDocuments(filter);
+
+    // Get paginated orders
+    const myOrders = await orders
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .toArray();
+
+    // Calculate statistics for all orders (not just current page)
+    const allOrdersFilter = { customerEmail: email };
+    const stats = {
+      all: await orders.countDocuments(allOrdersFilter),
+      pending: await orders.countDocuments({
+        ...allOrdersFilter,
+        orderStatus: "pending",
+      }),
+      confirmed: await orders.countDocuments({
+        ...allOrdersFilter,
+        orderStatus: "confirmed",
+      }),
+      shipped: await orders.countDocuments({
+        ...allOrdersFilter,
+        orderStatus: "shipped",
+      }),
+      delivered: await orders.countDocuments({
+        ...allOrdersFilter,
+        orderStatus: "delivered",
+      }),
+      cancelled: await orders.countDocuments({
+        ...allOrdersFilter,
+        orderStatus: "cancelled",
+      }),
+    };
+
+    res.status(200).json({
+      success: true,
+      myOrders,
+      total,
+      stats,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to fetch orders",
     });
   }
 };
