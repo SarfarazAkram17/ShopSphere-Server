@@ -7,6 +7,7 @@ import {
   getAllOrders,
   getMyOrders,
   getSingleOrder,
+  cancelOrder,
 } from "../controllers/orders.controller.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
 
