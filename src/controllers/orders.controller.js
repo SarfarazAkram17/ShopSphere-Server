@@ -108,10 +108,23 @@ export const getMyOrders = async (req, res) => {
 export const getSingleOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const order = await orders.findOne({ _id: new ObjectId(orderId) });
-    res.send(order);
+    const userEmail = req.user.email;
+
+    const order = await orders.findOne({
+      _id: new ObjectId(orderId),
+      customerEmail: userEmail,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.status(200).json(order);
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });
