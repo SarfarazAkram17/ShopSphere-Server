@@ -544,7 +544,8 @@ export const cancelOrder = async (req, res) => {
 
         // Calculate refund for this item
         const itemRefund = item.subtotal;
-        itemsRefund += itemRefund;
+
+        itemsRefund = Number((itemsRefund + itemRefund).toFixed(2));
 
         // Restore product stock
         await products.updateOne(
@@ -561,7 +562,7 @@ export const cancelOrder = async (req, res) => {
           color: item.color || null,
           size: item.size || null,
           quantity: item.quantity,
-          refundAmount: itemRefund,
+          refundAmount: Number(itemRefund.toFixed(2)),
         });
 
         // Mark item as cancelled
@@ -576,7 +577,9 @@ export const cancelOrder = async (req, res) => {
       );
 
       if (allItemsCancelled) {
-        deliveryRefund += store.deliveryCharge;
+        deliveryRefund = Number(
+          (deliveryRefund + store.deliveryCharge).toFixed(2)
+        );
         store.storeOrderStatus = "cancelled";
         store.cancelledAt = new Date().toISOString();
         store.cancellationReason = reason;
@@ -589,19 +592,21 @@ export const cancelOrder = async (req, res) => {
           (sum, item) => sum + item.subtotal,
           0
         );
-        store.storeTotal = newStoreTotal;
+        store.storeTotal = Number(newStoreTotal.toFixed(2));
 
         // Recalculate commissions
-        store.platformCommissionAmount =
-          (newStoreTotal * store.platformCommission) / 100;
-        store.sellerAmount = newStoreTotal - store.platformCommissionAmount;
+        store.platformCommissionAmount = Number(
+          ((newStoreTotal * store.platformCommission) / 100).toFixed(2)
+        );
+        store.sellerAmount = Number(
+          (newStoreTotal - store.platformCommissionAmount).toFixed(2)
+        );
       }
 
       updatedStores[storeIndex] = store;
     }
 
-    // Calculate total refund
-    totalRefund = itemsRefund + deliveryRefund;
+    totalRefund = Number((itemsRefund + deliveryRefund).toFixed(2));
 
     // Check if entire order is cancelled (all stores cancelled)
     const allStoresCancelled = updatedStores.every(
@@ -612,8 +617,8 @@ export const cancelOrder = async (req, res) => {
     if (allStoresCancelled) {
       // Refund cash payment fee if entire order cancelled
       if (order.cashPaymentFee) {
-        cashFeeRefund = order.cashPaymentFee;
-        totalRefund += cashFeeRefund;
+        cashFeeRefund = Number(order.cashPaymentFee.toFixed(2));
+        totalRefund = Number((totalRefund + cashFeeRefund).toFixed(2));
       }
     }
 
@@ -637,9 +642,9 @@ export const cancelOrder = async (req, res) => {
     // Update order
     const updateData = {
       stores: updatedStores,
-      itemsTotal: newItemsTotal,
-      totalDeliveryCharge: newDeliveryTotal,
-      totalAmount: newTotalAmount,
+      itemsTotal: Number(newItemsTotal.toFixed(2)),
+      totalDeliveryCharge: Number(newDeliveryTotal.toFixed(2)),
+      totalAmount: Number(newTotalAmount.toFixed(2)),
       updatedAt: new Date().toISOString(),
       cancellationHistory: [
         ...(order.cancellationHistory || []),
@@ -648,7 +653,7 @@ export const cancelOrder = async (req, res) => {
           cancelledBy: userEmail,
           reason: reason,
           items: cancelledItems,
-          refundAmount: totalRefund,
+          refundAmount: Number(totalRefund.toFixed(2)),
         },
       ],
     };
