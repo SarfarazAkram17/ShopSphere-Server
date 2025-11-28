@@ -446,3 +446,237 @@ export const confirmOrder = async (req, res) => {
     });
   }
 };
+
+export const cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { items, reason } = req.body;
+    const userEmail = req.user.email;
+
+    // Validate request
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide items to cancel",
+      });
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a cancellation reason",
+      });
+    }
+
+    // Fetch order
+    const order = await orders.findOne({
+      _id: new ObjectId(orderId),
+      customerEmail: userEmail,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Check if order can be cancelled
+    if (order.orderStatus !== "pending" || order.paymentStatus !== "unpaid") {
+      return res.status(400).json({
+        success: false,
+        message: "Order cannot be cancelled. It has been confirmed or paid.",
+      });
+    }
+
+    // Process cancellations
+    let totalRefund = 0;
+    let itemsRefund = 0;
+    let deliveryRefund = 0;
+    let updatedStores = [...order.stores];
+    const cancelledItems = [];
+
+    for (const cancelRequest of items) {
+      const { storeId, items: productsToCancel } = cancelRequest;
+
+      // Find store in order
+      const storeIndex = updatedStores.findIndex(
+        (s) => s.storeId.toString() === storeId
+      );
+
+      if (storeIndex === -1) continue;
+
+      const store = updatedStores[storeIndex];
+
+      // Check if store can be cancelled
+      if (store.storeOrderStatus !== "pending") {
+        continue;
+      }
+
+      // Process each product cancellation
+      for (const productCancel of productsToCancel) {
+        const { itemIndex, productId, quantity, color, size } = productCancel;
+
+        // Use itemIndex to identify the exact variant
+        let itemIdx = itemIndex;
+
+        // If itemIndex is not provided, fallback to matching by productId, color, and size
+        if (itemIdx === undefined || itemIdx === null) {
+          itemIdx = store.items.findIndex(
+            (item) =>
+              item.productId.toString() === productId &&
+              (color
+                ? item.color === color
+                : !item.color || item.color === null) &&
+              (size ? item.size === size : !item.size || item.size === null)
+          );
+        }
+
+        if (itemIdx === -1 || itemIdx >= store.items.length) continue;
+
+        const item = store.items[itemIdx];
+
+        // Skip if already cancelled
+        if (item.status === "cancelled") continue;
+
+        // Verify this is the correct item
+        if (item.productId.toString() !== productId) continue;
+
+        // Calculate refund for this item
+        const itemRefund = item.subtotal;
+
+        itemsRefund = Number((itemsRefund + itemRefund).toFixed(2));
+
+        // Restore product stock
+        await products.updateOne(
+          { _id: new ObjectId(productId) },
+          { $inc: { stock: quantity } }
+        );
+
+        // Track cancelled item
+        cancelledItems.push({
+          storeId: store.storeId,
+          storeName: store.storeName,
+          productId: item.productId,
+          productName: item.productName,
+          color: item.color || null,
+          size: item.size || null,
+          quantity: item.quantity,
+          refundAmount: Number(itemRefund.toFixed(2)),
+        });
+
+        // Mark item as cancelled
+        store.items[itemIdx].status = "cancelled";
+        store.items[itemIdx].cancelledAt = new Date().toISOString();
+        store.items[itemIdx].cancellationReason = reason;
+      }
+
+      // Check if all items from store are cancelled
+      const allItemsCancelled = store.items.every(
+        (item) => item.status === "cancelled"
+      );
+
+      if (allItemsCancelled) {
+        deliveryRefund = Number(
+          (deliveryRefund + store.deliveryCharge).toFixed(2)
+        );
+        store.storeOrderStatus = "cancelled";
+        store.cancelledAt = new Date().toISOString();
+        store.cancellationReason = reason;
+      } else {
+        // Recalculate store totals (only active items)
+        const activeItems = store.items.filter(
+          (item) => item.status !== "cancelled"
+        );
+        const newStoreTotal = activeItems.reduce(
+          (sum, item) => sum + item.subtotal,
+          0
+        );
+        store.storeTotal = Number(newStoreTotal.toFixed(2));
+
+        // Recalculate commissions
+        store.platformCommissionAmount = Number(
+          ((newStoreTotal * store.platformCommission) / 100).toFixed(2)
+        );
+        store.sellerAmount = Number(
+          (newStoreTotal - store.platformCommissionAmount).toFixed(2)
+        );
+      }
+
+      updatedStores[storeIndex] = store;
+    }
+
+    totalRefund = Number((itemsRefund + deliveryRefund).toFixed(2));
+
+    // Check if entire order is cancelled (all stores cancelled)
+    const allStoresCancelled = updatedStores.every(
+      (s) => s.storeOrderStatus === "cancelled"
+    );
+
+    let cashFeeRefund = 0;
+    if (allStoresCancelled) {
+      // Refund cash payment fee if entire order cancelled
+      if (order.cashPaymentFee) {
+        cashFeeRefund = Number(order.cashPaymentFee.toFixed(2));
+        totalRefund = Number((totalRefund + cashFeeRefund).toFixed(2));
+      }
+    }
+
+    // Recalculate order totals (only active items)
+    const activeStores = updatedStores.filter(
+      (s) => s.storeOrderStatus !== "cancelled"
+    );
+    const newItemsTotal = activeStores.reduce(
+      (sum, store) => sum + store.storeTotal,
+      0
+    );
+    const newDeliveryTotal = activeStores.reduce(
+      (sum, store) => sum + store.deliveryCharge,
+      0
+    );
+    const newTotalAmount =
+      newItemsTotal +
+      newDeliveryTotal +
+      (allStoresCancelled ? 0 : order.cashPaymentFee || 0);
+
+    // Update order
+    const updateData = {
+      stores: updatedStores,
+      itemsTotal: Number(newItemsTotal.toFixed(2)),
+      totalDeliveryCharge: Number(newDeliveryTotal.toFixed(2)),
+      totalAmount: Number(newTotalAmount.toFixed(2)),
+      updatedAt: new Date().toISOString(),
+      cancellationHistory: [
+        ...(order.cancellationHistory || []),
+        {
+          cancelledAt: new Date().toISOString(),
+          cancelledBy: userEmail,
+          reason: reason,
+          items: cancelledItems,
+          refundAmount: Number(totalRefund.toFixed(2)),
+        },
+      ],
+    };
+
+    // If all stores cancelled, mark order as cancelled
+    if (allStoresCancelled) {
+      updateData.orderStatus = "cancelled";
+      updateData.cancelledAt = new Date().toISOString();
+    }
+
+    await orders.updateOne(
+      { _id: new ObjectId(orderId) },
+      { $set: updateData }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Order items cancelled successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
