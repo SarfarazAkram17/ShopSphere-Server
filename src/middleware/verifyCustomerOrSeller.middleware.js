@@ -1,4 +1,4 @@
-export const verifyCustomerAndSeller = (req, res, next) => {
+export const verifyCustomerOrSeller = (req, res, next) => {
   if (!["seller", "customer"].includes(req.user.role)) {
     return res
       .status(403)
