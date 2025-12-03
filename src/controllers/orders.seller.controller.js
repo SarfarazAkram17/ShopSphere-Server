@@ -178,12 +178,7 @@ export const cancelOrder = async (req, res) => {
           ((newStoreTotal * store.platformCommission) / 100).toFixed(2)
         );
         store.sellerAmount = Number(
-          (
-            newStoreTotal +
-            store.deliveryCharge -
-            store.platformCommissionAmount -
-            store.riderAmount
-          ).toFixed(2)
+          (newStoreTotal - store.platformCommissionAmount).toFixed(2)
         );
       }
 
