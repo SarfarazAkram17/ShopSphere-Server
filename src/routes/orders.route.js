@@ -1,19 +1,21 @@
 import express from "express";
 import { verifyJwt } from "../middleware/verifyJwt.middleware.js";
 import { verifyCustomer } from "../middleware/verifyCustomer.middleware.js";
-import {
-  confirmOrder,
-  createOrder,
-  getAllOrders,
-  getMyOrders,
-  getSingleOrder,
-  cancelOrder,
-  updateStoreOrderStatus,
-  getSellerOrders,
-} from "../controllers/orders.controller.js";
 import { verifyAdmin } from "../middleware/verifyAdmin.middleware.js";
 import { verifySeller } from "../middleware/verifySeller.middleware.js";
 import { verifyCustomerOrSeller } from "../middleware/verifyCustomerOrSeller.middleware.js";
+import {
+  cancelOrder,
+  getSellerOrders,
+  updateStoreOrderStatus,
+} from "../controllers/orders.seller.controller.js";
+import {
+  confirmOrder,
+  createOrder,
+  getMyOrders,
+  getSingleOrder,
+} from "../controllers/orders.customer.controller.js";
+import { getAllOrders } from "../controllers/orders.admin.controller.js";
 
 const ordersRouter = express.Router();
 
