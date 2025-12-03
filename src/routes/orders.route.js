@@ -34,6 +34,11 @@ ordersRouter.patch(
   verifyCustomer,
   confirmOrder
 );
-
+ordersRouter.patch(
+  "/:orderId/store-status",
+  verifyJwt,
+  verifySeller,
+  updateStoreOrderStatus
+);
 
 export default ordersRouter;
