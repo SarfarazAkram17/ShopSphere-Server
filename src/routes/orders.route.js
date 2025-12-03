@@ -20,6 +20,7 @@ const ordersRouter = express.Router();
 ordersRouter.get("/all", verifyJwt, verifyAdmin, getAllOrders);
 ordersRouter.get("/my", verifyJwt, verifyCustomer, getMyOrders);
 ordersRouter.get("/:orderId", verifyJwt, verifyCustomer, getSingleOrder);
+ordersRouter.get("/seller/orders", verifyJwt, verifySeller, getSellerOrders);
 ordersRouter.post("/", verifyJwt, verifyCustomer, createOrder);
 ordersRouter.post(
   "/:orderId/cancel",
@@ -33,5 +34,6 @@ ordersRouter.patch(
   verifyCustomer,
   confirmOrder
 );
+
 
 export default ordersRouter;

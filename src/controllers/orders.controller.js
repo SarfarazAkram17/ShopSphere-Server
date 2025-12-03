@@ -825,6 +825,8 @@ export const getSellerOrders = async (req, res) => {
       pending: 0,
       confirmed: 0,
       prepared: 0,
+      shipped: 0,
+      delivered: 0,
       cancelled: 0,
     };
 
@@ -846,131 +848,6 @@ export const getSellerOrders = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch seller orders",
-    });
-  }
-};
-
-export const updateStoreOrderStatus = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { storeId, status } = req.body;
-    const sellerEmail = req.user.email;
-
-    if (!storeId || !status) {
-      return res.status(400).json({
-        success: false,
-        message: "Store ID and status are required",
-      });
-    }
-
-    const validStatuses = ["confirmed", "prepared"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status. Only 'confirmed' and 'prepared' are allowed.",
-      });
-    }
-
-    const order = await orders.findOne({
-      _id: new ObjectId(orderId),
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    const storeIndex = order.stores.findIndex(
-      (s) => s.storeId.toString() === storeId && s.storeEmail === sellerEmail
-    );
-
-    if (storeIndex === -1) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to update this store order",
-      });
-    }
-
-    const store = order.stores[storeIndex];
-    const currentStatus = store.storeOrderStatus;
-
-    const allowedTransitions = {
-      pending: ["confirmed"],
-      confirmed: ["prepared"],
-      prepared: [],
-      cancelled: [],
-    };
-
-    if (!allowedTransitions[currentStatus]?.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot change status from ${currentStatus} to ${status}`,
-      });
-    }
-
-    // Update the specific store's status
-    const updateResult = await orders.updateOne(
-      {
-        _id: new ObjectId(orderId),
-        "stores.storeId": new ObjectId(storeId),
-      },
-      {
-        $set: {
-          "stores.$.storeOrderStatus": status,
-          "stores.$.updatedAt": new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      }
-    );
-
-    if (updateResult.modifiedCount === 0) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to update order status",
-      });
-    }
-
-    // Fetch the updated order to check all stores' statuses
-    const updatedOrder = await orders.findOne({
-      _id: new ObjectId(orderId),
-    });
-
-    // Check if all stores have the same status
-    const allStoreStatuses = updatedOrder.stores.map((s) => s.storeOrderStatus);
-    const allConfirmed = allStoreStatuses.every((s) => s === "confirmed");
-    const allPrepared = allStoreStatuses.every((s) => s === "prepared");
-
-    // Update main order status based on all stores
-    let newOrderStatus = updatedOrder.orderStatus;
-    if (allPrepared) {
-      newOrderStatus = "prepared";
-    } else if (allConfirmed) {
-      newOrderStatus = "confirmed";
-    }
-
-    // Update the main order status if it changed
-    if (newOrderStatus !== updatedOrder.orderStatus) {
-      await orders.updateOne(
-        { _id: new ObjectId(orderId) },
-        {
-          $set: {
-            orderStatus: newOrderStatus,
-            updatedAt: new Date().toISOString(),
-          },
-        }
-      );
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `Order status updated to ${status}`,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Failed to update order status",
     });
   }
 };
