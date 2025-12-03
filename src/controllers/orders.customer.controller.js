@@ -1,19 +1,7 @@
-import connectDB from "../config/db.js";
 import { ObjectId } from "mongodb";
+import connectDB from "../config/db.js";
 
 const { orders, products, carts } = await connectDB();
-
-export const getAllOrders = async (req, res) => {
-  try {
-    const orders = await orders.find().toArray();
-    res.send(orders);
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
 
 export const getMyOrders = async (req, res) => {
   try {
@@ -450,4 +438,3 @@ export const confirmOrder = async (req, res) => {
     });
   }
 };
-
