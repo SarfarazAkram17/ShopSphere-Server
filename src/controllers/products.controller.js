@@ -5,10 +5,10 @@ const { sellers, products } = await connectDB();
 
 export const getMyProduct = async (req, res) => {
   try {
-    let { page = 1, limit = 12, email } = req.query;
+    let { page = 0, limit = 12, email } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
-    const skip = (page - 1) * limit;
+    const skip = page * limit;
 
     const store = await sellers.findOne({ email });
     const query = { storeId: store._id.toString() };
@@ -75,7 +75,7 @@ export const getAllProducts = async (req, res) => {
 export const getProducts = async (req, res) => {
   try {
     let {
-      page = 1,
+      page = 0,
       limit = 12,
       search,
       category,
@@ -171,7 +171,7 @@ export const getProducts = async (req, res) => {
       .aggregate([
         ...pipeline,
         { $sort: { addedAt: -1 } },
-        { $skip: (page - 1) * limit },
+        { $skip: page * limit },
         { $limit: limit },
       ])
       .toArray();
@@ -185,7 +185,7 @@ export const getProducts = async (req, res) => {
 export const getOfferedProducts = async (req, res) => {
   try {
     let {
-      page = 1,
+      page = 0,
       limit = 12,
       search,
       category,
@@ -281,7 +281,7 @@ export const getOfferedProducts = async (req, res) => {
       .aggregate([
         ...pipeline,
         { $sort: { addedAt: -1 } },
-        { $skip: (page - 1) * limit },
+        { $skip: page * limit },
         { $limit: limit },
       ])
       .toArray();

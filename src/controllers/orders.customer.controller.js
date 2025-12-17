@@ -6,12 +6,12 @@ const { orders, products, carts } = await connectDB();
 export const getMyOrders = async (req, res) => {
   try {
     const { email } = req.user;
-    const { page = 1, limit = 10, searchTerm = "", status } = req.query;
+    const { page = 0, limit = 10, searchTerm = "", status } = req.query;
 
     // Convert page and limit to numbers
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
+    const skip = pageNum * limitNum;
 
     // Build the filter query
     let filter = { customerEmail: email };
