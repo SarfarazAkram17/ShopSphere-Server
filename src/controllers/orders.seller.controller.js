@@ -259,11 +259,11 @@ export const cancelOrder = async (req, res) => {
 export const getSellerOrders = async (req, res) => {
   try {
     const { email } = req.user;
-    const { page = 1, limit = 10, searchTerm = "", status } = req.query;
+    const { page = 0, limit = 10, searchTerm = "", status } = req.query;
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
+    const skip = pageNum * limitNum;
 
     const pipeline = [
       {
